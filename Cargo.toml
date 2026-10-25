@@ -1,0 +1,20 @@
+[package]
+name = "mimizuku"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Batched Whisper transcription with token timestamps on CUDA GPUs: own kernels, CUDA graphs, one dependency"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/hayatree/mimizuku"
+keywords = ["whisper", "speech-recognition", "cuda", "asr", "transcription"]
+categories = ["multimedia::audio", "science"]
+publish = false
+
+# One external crate on purpose: safetensors/JSON/fp16/WAV/mel/tokenizer handling is done in-tree to keep the audit surface small.
+[dependencies]
+cudarc = { version = "=0.19.10", default-features = false, features = ["std", "cuda-version-from-build-system", "driver", "cublas", "nvrtc", "dynamic-loading"] }
+
+[profile.release]
+debug = false
+lto = "thin"

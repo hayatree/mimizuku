@@ -1,0 +1,33 @@
+# Build, lint and unit tests (CPU only: GitHub's runners have no NVIDIA GPU, so the engine itself is not run here).
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: CUDA compiler (NVIDIA apt repository, keyring checked by hash)
+        run: |
+          curl -fsSLo /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+          echo "d2a6b11c096396d868758b86dab1823b25e14d70333f1dfa74da5ddaf6a06dba  /tmp/cuda-keyring.deb" | sha256sum -c
+          sudo dpkg -i /tmp/cuda-keyring.deb
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends cuda-nvcc-12-8 cuda-cudart-dev-12-8
+          echo /usr/local/cuda-12.8/bin >> "$GITHUB_PATH"
+      - name: Rust components
+        run: rustup component add rustfmt clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --release --locked
+      - name: Minimum supported Rust version (rust-version in Cargo.toml)
+        run: |
+          rustup toolchain install 1.88 --profile minimal
+          cargo +1.88 check --locked --all-targets
